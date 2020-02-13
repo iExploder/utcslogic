@@ -29,55 +29,6 @@ module WagonDT = struct
         | FSingle   -> 32
         | FDouble   -> 64
 
-    let i8_t    : wtype = PDT(Int(8))
-    let i16_t   : wtype = PDT(Int(16))
-    let i32_t   : wtype = PDT(Int(32))
-    let i64_t   : wtype = PDT(Int(64))
-
-    let f32_t   : wtype = PDT(FSingle)
-    let f64_t   : wtype = PDT(FDouble)
-
-    let v128    : wtype -> wtype = 
-        fun scalar ->
-        match scalar with
-        | PDT(dt) -> 
-            begin
-                match dt with
-                | Bool      -> Vec128i(Bool)
-                | Int(n)    -> Vec128i(Int(n))
-                | FSingle   -> Vec128s(FSingle)
-                | FDouble   -> Vec128d(FDouble)
-            end
-        | _ -> failwith "unexpected scalar type"
-    let v256    : wtype -> wtype = 
-        fun scalar ->
-        match scalar with
-        | PDT(dt) -> 
-            begin
-                match dt with
-                | Bool      -> Vec256i(Bool)
-                | Int(n)    -> Vec256i(Int(n))
-                | FSingle   -> Vec256s(FSingle)
-                | FDouble   -> Vec256d(FDouble)
-            end
-        | _ -> failwith "unexpected scalar type"
-    let v512    : wtype -> wtype = 
-    fun scalar ->
-        match scalar with
-        | PDT(dt) -> 
-            begin
-                match dt with
-                | Bool      -> Vec512i(Bool)
-                | Int(n)    -> Vec512i(Int(n))
-                | FSingle   -> Vec512s(FSingle)
-                | FDouble   -> Vec512d(FDouble)
-            end
-        | _ -> failwith "unexpected scalar type"
-    
-    let arr     : wtype -> int -> wtype =
-    fun elem n -> Array(elem, n)
-    let structure : wtype list -> wtype =
-    fun elem_list -> Struct(elem_list)
     let struct_elem : wtype -> int -> wtype =
     fun str n ->
         match str with
@@ -89,6 +40,8 @@ module WagonDT = struct
     fun decl ->
         if List.exists (fun s -> s = decl) (!_struct_decl) then ()
         else _struct_decl := (!_struct_decl) @ [decl]
+    let get_struct_decl : unit -> string =
+    fun () -> List.fold_left (^) "" (!_struct_decl)
     
     let pdt_name : wpdt -> string =
     fun pdt -> 
@@ -144,6 +97,60 @@ module WagonDT = struct
             | hd :: tl -> (Printf.sprintf "\t%s v%d;\n" (typename hd) id) ^ (gen_struct_list tl ~id:(id+1) )
         in
         match pdt with
-        | Struct(s) -> Printf.sprintf "struct %s{\n%s};" (struct_name pdt) (gen_struct_list s)
+        | Struct(s) -> Printf.sprintf "struct %s{\n%s};\n" (struct_name pdt) (gen_struct_list s)
         | _ -> failwith "unexpected data type"
+
+    let i8_t    : wtype = PDT(Int(8))
+    let i16_t   : wtype = PDT(Int(16))
+    let i32_t   : wtype = PDT(Int(32))
+    let i64_t   : wtype = PDT(Int(64))
+
+    let f32_t   : wtype = PDT(FSingle)
+    let f64_t   : wtype = PDT(FDouble)
+
+    let v128    : wtype -> wtype = 
+        fun scalar ->
+        match scalar with
+        | PDT(dt) -> 
+            begin
+                match dt with
+                | Bool      -> Vec128i(Bool)
+                | Int(n)    -> Vec128i(Int(n))
+                | FSingle   -> Vec128s(FSingle)
+                | FDouble   -> Vec128d(FDouble)
+            end
+        | _ -> failwith "unexpected scalar type"
+    let v256    : wtype -> wtype = 
+        fun scalar ->
+        match scalar with
+        | PDT(dt) -> 
+            begin
+                match dt with
+                | Bool      -> Vec256i(Bool)
+                | Int(n)    -> Vec256i(Int(n))
+                | FSingle   -> Vec256s(FSingle)
+                | FDouble   -> Vec256d(FDouble)
+            end
+        | _ -> failwith "unexpected scalar type"
+    let v512    : wtype -> wtype = 
+    fun scalar ->
+        match scalar with
+        | PDT(dt) -> 
+            begin
+                match dt with
+                | Bool      -> Vec512i(Bool)
+                | Int(n)    -> Vec512i(Int(n))
+                | FSingle   -> Vec512s(FSingle)
+                | FDouble   -> Vec512d(FDouble)
+            end
+        | _ -> failwith "unexpected scalar type"
+    
+    let arr     : wtype -> int -> wtype =
+    fun elem n -> Array(elem, n)
+    let structure : wtype list -> wtype =
+    fun elem_list -> 
+        let str = Struct(elem_list) in
+        _struct_decl_append (struct_decl str);
+        str
+
 end

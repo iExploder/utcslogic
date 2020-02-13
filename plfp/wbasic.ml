@@ -5,6 +5,9 @@ module WagonBasic = struct
     type wexpr = wtype * string
     type wstmt = string
     type 'a wlvalue = 'a
+    type wfunc = wtype list * wtype * wstmt list * string
+
+
 
     (* Invisible Internal Functions for Users *)
     let _litmagic    : ('a -> string) -> wtype -> 'a -> wexpr =
@@ -48,6 +51,13 @@ module WagonBasic = struct
             (!_namecounter) 
         in
         Printf.sprintf "wobj_%08x" count
+    let _getfuncname  : unit -> string =
+    fun () ->
+        let count = 
+            _namecounter := (!_namecounter) + 1; 
+            (!_namecounter) 
+        in
+        Printf.sprintf "wfunc_%08x" count   
 
     let _declare_list : string list ref = ref []
     let _declare_append : string -> unit =
@@ -154,6 +164,42 @@ module WagonBasic = struct
         | _ -> failwith "unexpected data type"
 
     let deref     : 'a wlvalue -> 'a = fun a -> a
+
+    let get_declare : unit -> string =
+    fun () ->
+        List.fold_left (^) "" (!_declare_list)
+
+    let ifelse  : wexpr -> wstmt -> wstmt -> wstmt =
+    fun (et, ee) strue sfalse ->
+        match et with
+        | PDT(Bool) -> Printf.sprintf "if (%s) {%s} else {%s}" ee strue sfalse
+        | _ -> failwith "unexpected data type"
+    
+    let func : wtype list -> wtype -> (wexpr list -> wstmt list) -> wfunc =
+    fun param_types ret_type realfunc ->
+        let gen_expr_list = 
+            List.mapi (fun i wtyp -> (wtyp, Printf.sprintf "p%d" i)) param_types 
+        in
+        (param_types, ret_type, realfunc gen_expr_list, _getfuncname ())
+
+    let funccall : wfunc -> wexpr list -> wexpr =
+    fun (wfparam, wfrett, wfstmt, wfname) expr_list -> 
+        let param_type_list = 
+            List.map (fun (t, _) -> t) expr_list
+        in
+        let param_str_list =
+            let concatd = fun delim s1 s2 -> Printf.sprintf "%s%s%s" s1 delim s2 in
+            let delim = ", " in
+            let untrimmed_str = 
+                List.fold_left (concatd delim) "" (List.map (fun (_, e) -> e) expr_list)
+            in
+            String.sub untrimmed_str 
+                (String.length delim) (String.length untrimmed_str - (String.length delim))
+        in
+        let expr = Printf.sprintf "%s(%s)" wfname param_str_list in
+        if param_type_list = wfparam then (wfrett, expr)
+        else failwith "function parameter(s) unmatch"
+        
 
 
 end
